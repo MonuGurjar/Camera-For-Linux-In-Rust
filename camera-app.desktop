@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Hyper Camera
+Comment=A modern, HyperOS inspired camera app for Linux built with Rust and Slint.
+Exec=camera-app
+Icon=camera-photo
+Terminal=false
+Categories=AudioVideo;Video;Photography;
