@@ -1,0 +1,272 @@
+import { Button, CheckBox, ComboBox, Slider } from "std-widgets.slint";
+
+export component AppWindow inherits Window {
+    title: "Camera";
+    min-width: 800px;
+    min-height: 600px;
+    background: black;
+    no-frame: root.is-borderless;
+
+    in property <bool> is-borderless: false;
+    in property <image> video-frame;
+    in property <bool> is-recording: false;
+    in property <string> recording-time: "00:00";
+    in property <string> toast-message: "";
+
+    // Toggles and States
+    in-out property <bool> is-video-mode: false;
+    in-out property <bool> show-grid: false;
+    in-out property <bool> show-settings: false;
+
+    // Callbacks
+    callback toggle-recording();
+    callback take-photo();
+    callback change-resolution(string);
+    callback change-fps(string);
+    callback toggle-borderless();
+    callback set-iso(float);
+    callback set-exposure(float);
+
+    in-out property <[string]> available-resolutions: ["720p", "1080p", "4k"];
+    in-out property <[string]> available-fps: ["30 FPS", "60 FPS"];
+    
+    // Main preview
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        Image {
+            source: root.video-frame;
+            width: 100%;
+            height: 100%;
+            image-fit: contain;
+        }
+
+        // Simple Grid implementation using Rectangles for Rule of Thirds
+        if root.show-grid : Rectangle {
+            width: 100%;
+            height: 100%;
+            Rectangle { y: parent.height / 3; width: parent.width; height: 1px; background: rgba(255, 255, 255, 0.4); }
+            Rectangle { y: parent.height * 2 / 3; width: parent.width; height: 1px; background: rgba(255, 255, 255, 0.4); }
+            Rectangle { x: parent.width / 3; width: 1px; height: parent.height; background: rgba(255, 255, 255, 0.4); }
+            Rectangle { x: parent.width * 2 / 3; width: 1px; height: parent.height; background: rgba(255, 255, 255, 0.4); }
+        }
+    }
+
+    // Top Indicators (Recording timer)
+    if root.is-recording : HorizontalLayout {
+        alignment: center;
+        y: 60px;
+        spacing: 10px;
+        Rectangle {
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background: #ff3333;
+            y: (parent.height - self.height) / 2;
+        }
+        Text {
+            text: root.recording-time;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+        }
+    }
+
+    // Toast Notification (HyperOS Pill Style)
+    if root.toast-message != "" : Rectangle {
+        y: root.height / 2 - 20px;
+        x: (root.width - self.width) / 2;
+        background: rgba(0, 0, 0, 0.65);
+        border-radius: 20px;
+        HorizontalLayout {
+            padding-left: 20px;
+            padding-right: 20px;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            Text {
+                text: root.toast-message;
+                color: white;
+                font-size: 14px;
+            }
+        }
+    }
+
+    // Settings Toggle Button (Top Right HyperOS Style)
+    Rectangle {
+        x: parent.width - 60px;
+        y: 20px;
+        width: 40px;
+        height: 40px;
+        background: root.show-settings ? rgba(255, 204, 0, 0.9) : rgba(0, 0, 0, 0.4);
+        border-radius: 20px;
+        Text {
+            text: "⚙";
+            color: root.show-settings ? black : white;
+            font-size: 22px;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+        TouchArea {
+            clicked => { root.show-settings = !root.show-settings; }
+        }
+    }
+
+    // Settings Overlay Modal (HyperOS Style)
+    if root.show-settings : Rectangle {
+        x: parent.width - 320px;
+        y: 70px;
+        width: 300px;
+        height: 460px;
+        background: rgba(20, 20, 20, 0.85);
+        border-radius: 24px;
+        border-width: 1px;
+        border-color: rgba(255, 255, 255, 0.1);
+
+        Flickable {
+            width: 100%;
+            height: 100%;
+            viewport-height: 520px;
+            VerticalLayout {
+                padding: 24px;
+                spacing: 20px;
+
+                Text { text: "Settings"; color: #ffcc00; font-size: 18px; font-weight: 700; }
+
+                CheckBox {
+                    text: "Borderless Window";
+                    checked: root.is-borderless;
+                    toggled => { root.toggle-borderless(); }
+                }
+
+                CheckBox {
+                    text: "Grid Overlay";
+                    checked: root.show-grid;
+                    toggled => { root.show-grid = self.checked; }
+                }
+
+                Text { text: "Resolution"; color: rgba(255, 255, 255, 0.6); font-size: 12px; }
+                ComboBox {
+                    model: root.available-resolutions;
+                    current-value: root.available-resolutions[0];
+                    selected(val) => { root.change-resolution(val); }
+                }
+
+                Text { text: "FPS"; color: rgba(255, 255, 255, 0.6); font-size: 12px; }
+                ComboBox {
+                    model: root.available-fps;
+                    current-value: root.available-fps[0];
+                    selected(val) => { root.change-fps(val); }
+                }
+                
+                Rectangle { height: 1px; background: rgba(255, 255, 255, 0.1); }
+                
+                Text { text: "PRO MODE"; color: #ffcc00; font-size: 12px; font-weight: 700; }
+                
+                Text { text: "ISO"; color: white; font-size: 14px; }
+                Slider {
+                    minimum: 100;
+                    maximum: 3200;
+                    value: 400;
+                    changed(val) => { root.set-iso(val); }
+                }
+
+                Text { text: "Exposure"; color: white; font-size: 14px; }
+                Slider {
+                    minimum: -2;
+                    maximum: 2;
+                    value: 0;
+                    changed(val) => { root.set-exposure(val); }
+                }
+            }
+        }
+    }
+
+    // Bottom Bar (HyperOS Camera Layout)
+    Rectangle {
+        y: parent.height - 160px;
+        width: 100%;
+        height: 160px;
+        
+        // Subtle dark gradient background for controls
+        Rectangle {
+            width: 100%;
+            height: 100%;
+            // In Slint we can use opacity or just rely on the main background. 
+            // For hyperos we keep it mostly transparent with a dark blur, but we'll use a solid translucent color.
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        // Mode Switcher Pill
+        Rectangle {
+            y: 15px;
+            width: 180px;
+            height: 36px;
+            x: (parent.width - self.width) / 2;
+            border-radius: 18px;
+            background: rgba(0, 0, 0, 0.6);
+
+            HorizontalLayout {
+                padding-left: 15px;
+                padding-right: 15px;
+                Rectangle {
+                    width: 75px;
+                    TouchArea { clicked => { root.is-video-mode = false; } }
+                    Text { 
+                        text: "PHOTO"; 
+                        color: !root.is-video-mode ? #ffcc00 : white; 
+                        font-weight: !root.is-video-mode ? 800 : 500;
+                        font-size: 13px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+                Rectangle {
+                    width: 75px;
+                    TouchArea { clicked => { root.is-video-mode = true; } }
+                    Text { 
+                        text: "VIDEO"; 
+                        color: root.is-video-mode ? #ffcc00 : white; 
+                        font-weight: root.is-video-mode ? 800 : 500;
+                        font-size: 13px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+
+        // Main Shutter Button
+        Rectangle {
+            y: 70px;
+            width: 72px;
+            height: 72px;
+            border-radius: 36px;
+            x: (parent.width - self.width) / 2;
+            border-width: 3px;
+            border-color: white;
+            background: transparent;
+
+            Rectangle {
+                width: root.is-video-mode ? (root.is-recording ? 24px : 56px) : 56px;
+                height: root.is-video-mode ? (root.is-recording ? 24px : 56px) : 56px;
+                border-radius: root.is-video-mode ? (root.is-recording ? 6px : 28px) : 28px;
+                background: root.is-video-mode ? #ff3333 : white;
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                animate width { duration: 250ms; easing: ease-in-out; }
+                animate height { duration: 250ms; easing: ease-in-out; }
+                animate border-radius { duration: 250ms; easing: ease-in-out; }
+            }
+
+            TouchArea {
+                clicked => {
+                    if root.is-video-mode {
+                        root.toggle-recording();
+                    } else {
+                        root.take-photo();
+                    }
+                }
+            }
+        }
+    }
+}

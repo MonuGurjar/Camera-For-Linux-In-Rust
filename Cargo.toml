@@ -1,0 +1,22 @@
+[package]
+name = "camera"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+[dependencies]
+slint = "1.5.1"
+gstreamer = "0.22"
+gstreamer-app = "0.22"
+gstreamer-video = "0.22"
+glib = "0.19"
+crossbeam-channel = "0.5"
+anyhow = "1.0"
+chrono = "0.4"
+zbus = "4.1"
+futures-lite = "2.3"
+image = "0.25"
+dirs = "6.0.0"
+
+[build-dependencies]
+slint-build = "1.5.1"
